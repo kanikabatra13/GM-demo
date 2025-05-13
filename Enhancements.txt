@@ -1,0 +1,9 @@
+Metered & Usage-Based Billing – Track usage per vehicle/subscription and generate charges accordingly.
+
+Event-Driven Auto-Renewals – Replace scheduled jobs with message queues (e.g., Kafka) for scalability and reliability.
+
+Multi-Tenant Security – Enforce org-level data isolation with JWT-based authentication and RBAC.
+
+Audit Logging & Monitoring – Enhance AuditLogEntry usage and expose metrics via Prometheus/Grafana.
+
+Invoice & Billing Portal – Generate invoices, expose /billing/org/{id}/invoices, and provide a self-service UI for org admins.

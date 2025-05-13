@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: gm-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: gmdemo
+
+  app:
+    image: gmdemo-app:latest
+    container_name: gm-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/gmdemo
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
