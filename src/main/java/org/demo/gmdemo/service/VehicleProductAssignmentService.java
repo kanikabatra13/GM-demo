@@ -1,10 +1,7 @@
 package org.demo.gmdemo.service;
 
 import lombok.RequiredArgsConstructor;
-import org.demo.gmdemo.dto.OrgProductSubscription;
-import org.demo.gmdemo.dto.ProductStatus;
-import org.demo.gmdemo.dto.Vehicle;
-import org.demo.gmdemo.dto.VehicleProductAssignment;
+import org.demo.gmdemo.dto.*;
 import org.demo.gmdemo.repo.OrgProductSubscriptionRepository;
 import org.demo.gmdemo.repo.VehicleProductAssignmentRepository;
 import org.demo.gmdemo.repo.VehicleRepository;
@@ -23,6 +20,8 @@ public class VehicleProductAssignmentService {
     private final VehicleProductAssignmentRepository vehicleAssignmentRepo;
     private final OrgProductSubscriptionRepository orgSubscriptionRepo;
     private final VehicleRepository vehicleRepository;
+    private final AuditLogger auditLogger;
+
 
     public VehicleProductAssignment assign(String orgId, String vehicleId, String orgSubId) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
@@ -49,6 +48,12 @@ public class VehicleProductAssignmentService {
                 .expiresOn(subscription.getExpiresOn())
                 .status(ProductStatus.ACTIVE)
                 .build();
+
+        auditLogger.log(
+                AuditAction.VEHICLE_ASSIGNED,
+                orgId, vehicleId, orgSubId, null,
+                "Vehicle assigned to active subscription", null
+        );
 
         return vehicleAssignmentRepo.save(assignment);
     }

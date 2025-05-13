@@ -63,13 +63,6 @@ This backend system simulates a **SaaS-style model** for managing digital produc
 
 ---
 
-## 🚀 To Do Next (Optional Enhancements)
-
-- Add audit/history tracking for renewals
-- Notification system for auto-renewals
-- Limit-based licensing (e.g., max vehicles per subscription)
-- Retry mechanism for failed purchase callbacks
-
 ## 🛠️ Installation & Setup
 
 ### 🔧 Prerequisites

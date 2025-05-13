@@ -1,5 +1,6 @@
 package org.demo.gmdemo.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.demo.gmdemo.dto.*;
 import org.demo.gmdemo.service.ProductAssignmentService;
@@ -12,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
+@Hidden
 public class DemoController {
 
     private final ProductAssignmentService productAssignmentService;

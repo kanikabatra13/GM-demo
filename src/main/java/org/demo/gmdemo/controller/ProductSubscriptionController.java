@@ -1,5 +1,8 @@
 package org.demo.gmdemo.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.demo.gmdemo.dto.OrgProductSubscription;
 import org.demo.gmdemo.dto.OrgProductSummaryDTO;
@@ -17,16 +20,20 @@ import java.util.Map;
 @RestController
 @RequestMapping("/subscriptions")
 @RequiredArgsConstructor
+@Tag(name = "Subscription APIs", description = "Manage product subscriptions, vehicle assignments, and renewals")
 public class ProductSubscriptionController {
 
     private final OrgProductSubscriptionService orgProductSubscriptionService;
     private final VehicleProductAssignmentService vehicleProductAssignmentService;
 
+    @Operation(summary = "Assign a product subscription to a organization")
     @PostMapping("/org")
     public ResponseEntity<OrgProductSubscription> subscribeToProduct(@RequestBody OrgProductSubscriptionRequest request) {
         return ResponseEntity.ok(orgProductSubscriptionService.subscribe(request.getOrganizationId(), request.getProductId()));
     }
 
+    @Operation(summary = "Assign a product subscription to a vehicle")
+    @ApiResponse(responseCode = "200", description = "Vehicle-product assignment created")
     @PostMapping("/vehicle")
     public ResponseEntity<VehicleProductAssignment> assignProductToVehicle(@RequestBody VehicleProductAssignmentRequest request) {
         return ResponseEntity.ok(vehicleProductAssignmentService.assign(request.getOrganizationId(), request.getVehicleId(), request.getOrgProductSubscriptionId()));
@@ -38,6 +45,7 @@ public class ProductSubscriptionController {
     }
 
 
+    @Operation(summary = "Get subscription summary by product for an organization")
     @GetMapping("/organization/summary")
     public ResponseEntity<List<OrgProductSummaryDTO>> getOrgSummary(
             @RequestParam String orgId,
@@ -50,6 +58,8 @@ public class ProductSubscriptionController {
     }
 
 
+    @Operation(summary = "Initiate product subscription purchase")
+    @ApiResponse(responseCode = "200", description = "Subscription created in PENDING state")
     @PostMapping("/org/purchase")
     public ResponseEntity<OrgProductSubscription> initiateProductPurchase(
             @RequestBody SubscriptionPurchaseRequest request
@@ -59,6 +69,8 @@ public class ProductSubscriptionController {
     }
 
 
+    @Operation(summary = "Handle callback from external purchase service")
+    @ApiResponse(responseCode = "200", description = "Subscription activated or cancelled")
     @PostMapping("/callback")
     public ResponseEntity<String> confirmPurchasePost(@RequestBody Map<String, Object> payload) {
         String subscriptionId = (String) payload.get("subscriptionId");
@@ -83,11 +95,13 @@ public class ProductSubscriptionController {
     }
 
     @GetMapping("/org/{orgId}")
+    @Operation(summary = "List subscriptions for an organization")
     public ResponseEntity<List<OrgProductSubscription>> getOrgSubscriptions(@PathVariable String orgId) {
         return ResponseEntity.ok(orgProductSubscriptionService.getOrgSubscriptions(orgId));
     }
 
 
+    @Operation(summary = "Unsubscribe a vehicle from a product")
     @PostMapping("/vehicle/unsubscribe")
     public ResponseEntity<String> unsubscribeVehicle(@RequestBody VehicleUnsubscribeRequest request) {
         vehicleProductAssignmentService.unsubscribeVehicleFromProduct(
@@ -98,6 +112,7 @@ public class ProductSubscriptionController {
     }
 
 
+    @Operation(summary = "Get Product subscription vehicle breakdown by organization")
     @GetMapping("/{orgId}/overview")
     public ResponseEntity<OrgOverviewResponse> getOrgOverview(@PathVariable String orgId) {
         return ResponseEntity.ok(orgProductSubscriptionService.getOrganizationOverview(orgId));
