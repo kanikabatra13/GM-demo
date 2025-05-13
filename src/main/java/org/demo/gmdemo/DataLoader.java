@@ -48,28 +48,36 @@ public class DataLoader implements CommandLineRunner {
         vehicleRepository.saveAll(List.of(v1, v2, v3));
 
         // Create Products
-        ProductDefinition p1 = new ProductDefinition();
-        p1.setId("prod001");
-        p1.setName("OnStar Safety");
-        p1.setDescription("Emergency assistance and crash response");
-        p1.setType(ProductType.RENEWABLE);
-        p1.setTermInDays(365);
+        ProductDefinition p1 = ProductDefinition.builder()
+                .id("prod001")
+                .name("OnStar Safety")
+                .description("Connected safety plan")
+                .type(ProductType.RENEWABLE)
+                .termInDays(365)
+                .price(99.99)
+                .billingCycle(BillingCycle.YEARLY)
+                .build();
 
-        ProductDefinition p2 = new ProductDefinition();
-        p2.setId("prod002");
-        p2.setName("Fleet Maintenance");
-        p2.setDescription("1-year vehicle maintenance subscription");
-        p2.setType(ProductType.TERMED);
-        p2.setTermInDays(365);
+        ProductDefinition p2 = ProductDefinition.builder()
+                .id("prod002")
+                .name("Fleet Maintenance")
+                .description("1-year maintenance plan")
+                .type(ProductType.TERMED)
+                .termInDays(365)
+                .price(49.99)
+                .billingCycle(BillingCycle.YEARLY)
+                .build();
 
-        ProductDefinition p3 = new ProductDefinition();
-        p3.setId("prod003");
-        p3.setName("Initial Setup Fee");
-        p3.setDescription("One-time vehicle setup");
-        p3.setType(ProductType.ONE_TIME);
+        ProductDefinition p3 = ProductDefinition.builder()
+                .id("prod003")
+                .name("Setup Fee")
+                .description("One-time activation")
+                .type(ProductType.ONE_TIME)
+                .price(149.0)
+                .billingCycle(BillingCycle.NONE)
+                .build();
 
         productDefinitionRepository.saveAll(List.of(p1, p2, p3));
-
 
         // Create OrgProductSubscription (org acquires OnStar)
         Instant now = Instant.now();

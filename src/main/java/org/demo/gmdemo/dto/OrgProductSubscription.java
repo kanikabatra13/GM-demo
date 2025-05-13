@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 @Document(collection = "org_product_subscriptions")
 @Data
@@ -27,5 +28,10 @@ public class OrgProductSubscription {
     private Instant expiresOn;
 
     private ProductStatus status; // ACTIVE, CANCELLED, EXPIRED
+
+    private Double recurringCharge; // captured from product at time of subscription
+    private BillingCycle billingCycle;
+
+    private List<ChargeRecord> charges;
 }
 

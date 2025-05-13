@@ -2,8 +2,11 @@ package org.demo.gmdemo.service;
 
 import lombok.RequiredArgsConstructor;
 import org.demo.gmdemo.dto.*;
+import org.demo.gmdemo.model.OrgOverviewResponse;
+import org.demo.gmdemo.model.OrgSubscriptionSummary;
 import org.demo.gmdemo.model.SubscriptionPurchaseRequest;
 import org.demo.gmdemo.repo.OrgProductSubscriptionRepository;
+import org.demo.gmdemo.repo.OrganizationRepository;
 import org.demo.gmdemo.repo.ProductDefinitionRepository;
 import org.demo.gmdemo.repo.VehicleProductAssignmentRepository;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ public class OrgProductSubscriptionService {
     private final OrgProductSubscriptionRepository repo;
     private final ProductDefinitionRepository productRepo;
     private final VehicleProductAssignmentRepository vehicleAssignmentRepository;
+    private final OrganizationRepository organizationRepository;
 
     public OrgProductSubscription subscribe(String orgId, String productId) {
         ProductDefinition product = productRepo.findById(productId)
@@ -90,8 +94,21 @@ public class OrgProductSubscriptionService {
                 .productId(request.getProductId())
                 .type(product.getType())
                 .subscribedOn(Instant.now())
-                .status(ProductStatus.PENDING) // status until purchase confirmed
+                .status(ProductStatus.PENDING)
+                .billingCycle(product.getBillingCycle())
+                .recurringCharge(product.getPrice())// status until purchase confirmed
                 .build();
+
+        long count = repo
+                .findByOrganizationId(request.getOrganizationId())
+                .stream()
+                .map(OrgProductSubscription::getProductId)
+                .distinct()
+                .count();
+
+        if (count >= 10) {
+            throw new IllegalStateException("Organization has already purchased the maximum number of products (10).");
+        }
 
         OrgProductSubscription saved = repo.save(subscription);
 
@@ -140,7 +157,11 @@ public class OrgProductSubscriptionService {
         } catch (InterruptedException ignored) {}
 
         // 2. Simulate purchase result randomly
-        boolean success = ThreadLocalRandom.current().nextBoolean(); // 50% chance success
+      //
+        //
+        //  boolean success = ThreadLocalRandom.current().nextBoolean(); //50% chance success
+
+        boolean success = true;
 
         // 3. Prepare payload
         Map<String, Object> payload = new HashMap<>();
@@ -160,6 +181,57 @@ public class OrgProductSubscriptionService {
         }
     }
 
+
+    public List<OrgProductSubscription> getOrgSubscriptions(String orgId) {
+        return repo.findByOrganizationId(orgId);
+    }
+
+
+
+    public OrgOverviewResponse getOrganizationOverview(String orgId) {
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
+
+        List<OrgProductSubscription> subs = repo.findByOrganizationId(orgId);
+        List<VehicleProductAssignment> assignments = vehicleAssignmentRepository.findByOrganizationId(orgId);
+
+        Map<String, ProductDefinition> productMap = productRepo.findAll().stream()
+                .collect(Collectors.toMap(ProductDefinition::getId, p -> p));
+
+        Map<String, List<VehicleProductAssignment>> groupedBySub = assignments.stream()
+                .collect(Collectors.groupingBy(VehicleProductAssignment::getOrgProductSubscriptionId));
+
+        List<OrgSubscriptionSummary> subscriptionSummaries = subs.stream()
+                .map(sub -> {
+                    ProductDefinition product = productMap.get(sub.getProductId());
+
+                    Map<ProductStatus, List<String>> vehicleStatusMap = new EnumMap<>(ProductStatus.class);
+
+                    for (ProductStatus status : ProductStatus.values()) {
+                        vehicleStatusMap.put(status, new ArrayList<>());
+                    }
+
+                    List<VehicleProductAssignment> subAssignments = groupedBySub.getOrDefault(sub.getId(), List.of());
+
+                    for (VehicleProductAssignment a : subAssignments) {
+                        vehicleStatusMap.get(a.getStatus()).add(a.getVehicleId());
+                    }
+
+                    return OrgSubscriptionSummary.builder()
+                            .productId(sub.getProductId())
+                            .productName(product.getName())
+                            .status(sub.getStatus())
+                            .vehicleAssignments(vehicleStatusMap)
+                            .build();
+                })
+                .toList();
+
+        return OrgOverviewResponse.builder()
+                .organizationId(org.getId())
+                .name(org.getName())
+                .subscriptions(subscriptionSummaries)
+                .build();
+    }
 
 
 }

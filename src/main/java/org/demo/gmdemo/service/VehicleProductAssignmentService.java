@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,5 +56,40 @@ public class VehicleProductAssignmentService {
     public List<VehicleProductAssignment> getActiveSubscriptions(String vehicleId) {
         return vehicleAssignmentRepo.findByVehicleIdAndStatus(vehicleId, ProductStatus.ACTIVE);
     }
+
+    public List<String> getVehiclesWithProduct(String organizationId, String productId) {
+        // 1. Get active org subscriptions for the given product
+        Optional<OrgProductSubscription> orgSubs = orgSubscriptionRepo
+                .findByOrganizationIdAndProductIdAndStatus(organizationId, productId, ProductStatus.ACTIVE);
+
+        Set<String> validSubIds = orgSubs.stream()
+                .map(OrgProductSubscription::getId)
+                .collect(Collectors.toSet());
+
+        if (validSubIds.isEmpty()) return List.of();
+
+        // 2. Get active vehicle assignments and filter by subscription IDs
+        List<VehicleProductAssignment> activeAssignments = vehicleAssignmentRepo
+                .findByOrganizationIdAndStatus(organizationId, ProductStatus.ACTIVE);
+
+        return activeAssignments.stream()
+                .filter(a -> validSubIds.contains(a.getOrgProductSubscriptionId()))
+                .map(VehicleProductAssignment::getVehicleId)
+                .distinct()
+                .toList();
+    }
+
+    public void unsubscribeVehicleFromProduct(String vehicleId, String subscriptionId) {
+        VehicleProductAssignment assignment = vehicleAssignmentRepo
+                .findByVehicleIdAndOrgProductSubscriptionIdAndStatus(vehicleId, subscriptionId, ProductStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("Active assignment not found"));
+
+        assignment.setStatus(ProductStatus.CANCELLED);
+        assignment.setExpiresOn(Instant.now());
+
+        vehicleAssignmentRepo.save(assignment);
+    }
+
+
 }
 

@@ -87,5 +87,41 @@ Start MongoDB using Docker:
 docker run --name local-mongo -p 27017:27017 -d mongo
 
 
+Service Flows: 
 
+[Client]
+   │
+   ▼
+POST /subscriptions/org/purchase
+   │
+   ▼
+[Subscription Service] ───▶ Save OrgProductSubscription (PENDING)
+   │
+   ▼
+Call PurchaseService with callback URL
+   │
+   ▼
+[Purchase Service] (mock or real)
+   │
+Simulates payment → success/fail
+   │
+   ▼
+POST /subscriptions/callback
+   │
+   ▼
+[Subscription Service] 
+  → If success: mark ACTIVE, record ChargeRecord
+  → If fail: mark CANCELLED
 
+Auto Renewal Flow
+
+[Spring Scheduler] (Daily)
+   │
+   ▼
+Find subscriptions expiring in 5 days
+   │
+   ▼
+For each:
+  → Extend expiry
+  → Update vehicle assignments
+  → Record ChargeRecord

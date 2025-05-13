@@ -25,5 +25,12 @@ public class ProductDefinition {
 
     private Integer termInDays; // nullable for ONE_TIME
 
+    private Double price; // e.g., 49.99
+
+    private BillingCycle billingCycle;// enum: MONTHLY, YEARLY, NONE
+
+    private Boolean autoChargeEnabled;
+
+
     // Constructors, Getters, Setters
 }

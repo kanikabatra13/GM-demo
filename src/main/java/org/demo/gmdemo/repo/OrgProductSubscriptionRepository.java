@@ -14,4 +14,7 @@ public interface OrgProductSubscriptionRepository extends MongoRepository<OrgPro
 
     List<OrgProductSubscription> findByTypeAndStatus(ProductType type, ProductStatus status);
 
+    List<OrgProductSubscription> findByOrganizationId(String organizationId);
+
+
 }

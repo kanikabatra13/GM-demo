@@ -5,11 +5,8 @@ import org.demo.gmdemo.dto.OrgProductSubscription;
 import org.demo.gmdemo.dto.OrgProductSummaryDTO;
 import org.demo.gmdemo.dto.ProductStatus;
 import org.demo.gmdemo.dto.VehicleProductAssignment;
-import org.demo.gmdemo.model.OrgProductSubscriptionRequest;
-import org.demo.gmdemo.model.SubscriptionPurchaseRequest;
-import org.demo.gmdemo.model.VehicleProductAssignmentRequest;
+import org.demo.gmdemo.model.*;
 import org.demo.gmdemo.service.OrgProductSubscriptionService;
-import org.demo.gmdemo.service.ProductAssignmentService;
 import org.demo.gmdemo.service.VehicleProductAssignmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,22 +19,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProductSubscriptionController {
 
-    private final OrgProductSubscriptionService orgService;
-    private final VehicleProductAssignmentService vehicleService;
+    private final OrgProductSubscriptionService orgProductSubscriptionService;
+    private final VehicleProductAssignmentService vehicleProductAssignmentService;
 
     @PostMapping("/org")
     public ResponseEntity<OrgProductSubscription> subscribeToProduct(@RequestBody OrgProductSubscriptionRequest request) {
-        return ResponseEntity.ok(orgService.subscribe(request.getOrganizationId(), request.getProductId()));
+        return ResponseEntity.ok(orgProductSubscriptionService.subscribe(request.getOrganizationId(), request.getProductId()));
     }
 
     @PostMapping("/vehicle")
     public ResponseEntity<VehicleProductAssignment> assignProductToVehicle(@RequestBody VehicleProductAssignmentRequest request) {
-        return ResponseEntity.ok(vehicleService.assign(request.getOrganizationId(), request.getVehicleId(), request.getOrgProductSubscriptionId()));
+        return ResponseEntity.ok(vehicleProductAssignmentService.assign(request.getOrganizationId(), request.getVehicleId(), request.getOrgProductSubscriptionId()));
     }
 
     @GetMapping("/vehicle/{vehicleId}")
     public ResponseEntity<List<VehicleProductAssignment>> getActiveForVehicle(@PathVariable String vehicleId) {
-        return ResponseEntity.ok(vehicleService.getActiveSubscriptions(vehicleId));
+        return ResponseEntity.ok(vehicleProductAssignmentService.getActiveSubscriptions(vehicleId));
     }
 
 
@@ -48,7 +45,7 @@ public class ProductSubscriptionController {
             @RequestParam(required = false) List<ProductStatus> assignmentStatuses // comma-separated list
     ) {
         return ResponseEntity.ok(
-                orgService.getProductUsageSummary(orgId, subscriptionStatus, assignmentStatuses)
+                orgProductSubscriptionService.getProductUsageSummary(orgId, subscriptionStatus, assignmentStatuses)
         );
     }
 
@@ -57,7 +54,7 @@ public class ProductSubscriptionController {
     public ResponseEntity<OrgProductSubscription> initiateProductPurchase(
             @RequestBody SubscriptionPurchaseRequest request
     ) {
-        OrgProductSubscription subscription = orgService.initiateSubscriptionPurchase(request);
+        OrgProductSubscription subscription = orgProductSubscriptionService.initiateSubscriptionPurchase(request);
         return ResponseEntity.ok(subscription);
     }
 
@@ -68,13 +65,42 @@ public class ProductSubscriptionController {
         boolean success = Boolean.TRUE.equals(payload.get("success"));
 
         if (success) {
-            orgService.activateSubscription(subscriptionId);
+            orgProductSubscriptionService.activateSubscription(subscriptionId);
             return ResponseEntity.ok("Activated");
         } else {
-            orgService.cancelSubscription(subscriptionId);
+            orgProductSubscriptionService.cancelSubscription(subscriptionId);
             return ResponseEntity.ok("Cancelled");
         }
     }
 
+
+    @GetMapping("/product/{productId}/vehicles")
+    public ResponseEntity<List<String>> getVehiclesWithProduct(
+            @PathVariable String productId,
+            @RequestParam String orgId
+    ) {
+        return ResponseEntity.ok(vehicleProductAssignmentService.getVehiclesWithProduct(orgId, productId));
+    }
+
+    @GetMapping("/org/{orgId}")
+    public ResponseEntity<List<OrgProductSubscription>> getOrgSubscriptions(@PathVariable String orgId) {
+        return ResponseEntity.ok(orgProductSubscriptionService.getOrgSubscriptions(orgId));
+    }
+
+
+    @PostMapping("/vehicle/unsubscribe")
+    public ResponseEntity<String> unsubscribeVehicle(@RequestBody VehicleUnsubscribeRequest request) {
+        vehicleProductAssignmentService.unsubscribeVehicleFromProduct(
+                request.getVehicleId(),
+                request.getOrgProductSubscriptionId()
+        );
+        return ResponseEntity.ok("Vehicle unsubscribed successfully.");
+    }
+
+
+    @GetMapping("/{orgId}/overview")
+    public ResponseEntity<OrgOverviewResponse> getOrgOverview(@PathVariable String orgId) {
+        return ResponseEntity.ok(orgProductSubscriptionService.getOrganizationOverview(orgId));
+    }
 
 }
