@@ -1,7 +1,7 @@
 package org.demo.gmdemo.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.demo.gmdemo.dto.ProductAssignment;
+import org.demo.gmdemo.dto.*;
 import org.demo.gmdemo.service.ProductAssignmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +17,16 @@ public class DemoController {
     private final ProductAssignmentService productAssignmentService;
 
     @PostMapping("/assign")
-    public <ProductAssignmentRequest> ResponseEntity<ProductAssignment> assignProduct(@RequestBody org.demo.gmdemo.model.ProductAssignmentRequest request) {
-        ProductAssignment assignment = productAssignmentService.assignProductToVehicles(
+    public ResponseEntity<List<ProductAssignment>> assignProduct(
+            @RequestBody ProductAssignmentRequest request) {
+
+        List<ProductAssignment> assignments = productAssignmentService.assignProductToVehicles(
                 request.getProductId(),
                 request.getOrganizationId(),
                 request.getVehicleIds()
         );
-        return ResponseEntity.ok(assignment);
+
+        return ResponseEntity.ok(assignments);
     }
 
     @PostMapping("/{assignmentId}/renew")
@@ -39,6 +42,13 @@ public class DemoController {
     @GetMapping("/vehicle/{vehicleId}")
     public ResponseEntity<List<ProductAssignment>> getActiveProducts(@PathVariable String vehicleId) {
         return ResponseEntity.ok(productAssignmentService.getActiveProductsForVehicle(vehicleId));
+    }
+
+    @GetMapping("/organization/summary")
+    public ResponseEntity<List<ProductSubscriptionSummary>> getOrgProductSummary(
+            @RequestParam("orgId") String orgId) {
+        System.out.println("inside org summary");
+        return ResponseEntity.ok(productAssignmentService.getProductSummaryForOrganization(orgId));
     }
 }
 

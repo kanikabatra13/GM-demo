@@ -21,7 +21,7 @@ public class GmDemoApplication  implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-
+/*
 
         User user = new User("Kanika");
         User saved = userRepository.save(user);
@@ -32,6 +32,6 @@ public class GmDemoApplication  implements CommandLineRunner {
         userRepository.findAll().forEach(u -> System.out.println(u.getId() + ": " + u.getName()));
 
 
-        System.out.println("Inserted user: " + user.getName());
+        System.out.println("Inserted user: " + user.getName()); */
     }
 }

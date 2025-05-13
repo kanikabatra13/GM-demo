@@ -1,6 +1,10 @@
 package org.demo.gmdemo.dto;
 
+import com.fasterxml.jackson.core.JsonToken;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -9,7 +13,9 @@ import java.util.List;
 
 @Document(collection = "product_assignments")
 @Data
-
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductAssignment {
 
     @Id
@@ -19,7 +25,7 @@ public class ProductAssignment {
 
     private String organizationId;
 
-    private List<String> vehicleIds;
+    private String vehicleId;
 
     private ProductStatus status;
 
@@ -28,6 +34,7 @@ public class ProductAssignment {
     private Instant expiryDate;
 
     private Instant lastRenewedDate;
+
 
     // Constructors, Getters, Setters
 }

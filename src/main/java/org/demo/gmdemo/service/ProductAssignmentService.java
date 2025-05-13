@@ -9,8 +9,8 @@ import org.demo.gmdemo.repo.VehicleRepository;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,41 +21,36 @@ public class ProductAssignmentService {
     private final OrganizationRepository organizationRepository;
     private final VehicleRepository vehicleRepository;
 
-    public ProductAssignment assignProductToVehicles(String productId, String organizationId, List<String> vehicleIds) {
-        // Validate product
+    public List<ProductAssignment> assignProductToVehicles(String productId, String organizationId, List<String> vehicleIds) {
         ProductDefinition product = productDefinitionRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid product ID"));
 
-        // Validate organization
         if (!organizationRepository.existsById(organizationId)) {
             throw new IllegalArgumentException("Invalid organization ID");
         }
 
-        // Validate vehicles
         List<Vehicle> vehicles = vehicleRepository.findAllById(vehicleIds);
         if (vehicles.size() != vehicleIds.size()) {
             throw new IllegalArgumentException("Some vehicle IDs are invalid");
         }
 
-        // Build assignment
-        ProductAssignment assignment = new ProductAssignment();
-        assignment.setProductId(productId);
-        assignment.setOrganizationId(organizationId);
-        assignment.setVehicleIds(vehicleIds);
-        assignment.setStatus(ProductStatus.ACTIVE);
-
         Instant now = Instant.now();
-        assignment.setActivationDate(now);
+        int termDays = Optional.ofNullable(product.getTermInDays()).orElse(365);
 
-        if (product.getType() == ProductType.ONE_TIME) {
-            assignment.setExpiryDate(null);
-        } else {
-            int termDays = Optional.ofNullable(product.getTermInDays()).orElse(365);
-            assignment.setExpiryDate(now.plusSeconds(termDays * 86400L));
-        }
+        List<ProductAssignment> assignments = vehicleIds.stream()
+                .map(vehicleId -> ProductAssignment.builder()
+                        .productId(productId)
+                        .organizationId(organizationId)
+                        .vehicleId(vehicleId)
+                        .status(ProductStatus.ACTIVE)
+                        .activationDate(now)
+                        .expiryDate(product.getType() == ProductType.ONE_TIME ? null : now.plusSeconds(termDays * 86400L))
+                        .build())
+                .toList();
 
-        return productAssignmentRepository.save(assignment);
+        return productAssignmentRepository.saveAll(assignments);
     }
+
 
     public ProductAssignment renewSubscription(String assignmentId) {
         ProductAssignment assignment = productAssignmentRepository.findById(assignmentId)
@@ -85,7 +80,31 @@ public class ProductAssignmentService {
     }
 
     public List<ProductAssignment> getActiveProductsForVehicle(String vehicleId) {
-        return productAssignmentRepository.findByVehicleIdsContainingAndStatus(vehicleId, ProductStatus.ACTIVE);
+        return productAssignmentRepository.findByVehicleIdAndStatus(vehicleId, ProductStatus.ACTIVE);
     }
+
+
+
+    public List<ProductSubscriptionSummary> getProductSummaryForOrganization(String organizationId) {
+        List<ProductAssignment> assignments = productAssignmentRepository.findByOrganizationId(organizationId);
+
+        // Group by productId and count
+        Map<String, Long> productCountMap = assignments.stream()
+                .collect(Collectors.groupingBy(ProductAssignment::getProductId, Collectors.counting()));
+
+        // Join with product names
+        return productCountMap.entrySet().stream()
+                .map(entry -> {
+                    String productId = entry.getKey();
+                    long vehicleCount = entry.getValue();
+
+                    ProductDefinition product = productDefinitionRepository.findById(productId)
+                            .orElseThrow(() -> new IllegalStateException("Product not found: " + productId));
+
+                    return new ProductSubscriptionSummary(productId, product.getName(), vehicleCount);
+                })
+                .collect(Collectors.toList());
+    }
+
 }
 
