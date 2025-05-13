@@ -1,6 +1,7 @@
 package org.demo.gmdemo.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.demo.gmdemo.dto.*;
 import org.demo.gmdemo.model.OrgOverviewResponse;
 import org.demo.gmdemo.model.OrgSubscriptionSummary;
@@ -20,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrgProductSubscriptionService {
 
     private final OrgProductSubscriptionRepository repo;
@@ -43,6 +45,9 @@ public class OrgProductSubscriptionService {
                 .expiresOn(expiry)
                 .status(ProductStatus.ACTIVE)
                 .build();
+
+        log.info("Subscription {} activated successfully");
+
 
         return repo.save(subscription);
     }
