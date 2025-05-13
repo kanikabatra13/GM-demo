@@ -16,4 +16,8 @@ public interface ProductAssignmentRepository extends MongoRepository<ProductAssi
 
     // Get all assignments for a vehicle (any status)
     List<ProductAssignment> findByVehicleId(String vehicleId);
+
+    List<ProductAssignment> findByProductIdAndOrganizationIdAndStatus(
+            String productId, String organizationId, ProductStatus status);
+
 }

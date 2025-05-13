@@ -2,10 +2,7 @@ package org.demo.gmdemo;
 
 import lombok.RequiredArgsConstructor;
 import org.demo.gmdemo.dto.*;
-import org.demo.gmdemo.repo.OrganizationRepository;
-import org.demo.gmdemo.repo.ProductAssignmentRepository;
-import org.demo.gmdemo.repo.ProductDefinitionRepository;
-import org.demo.gmdemo.repo.VehicleRepository;
+import org.demo.gmdemo.repo.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -20,14 +17,17 @@ public class DataLoader implements CommandLineRunner {
     private final VehicleRepository vehicleRepository;
     private final ProductDefinitionRepository productDefinitionRepository;
     private final ProductAssignmentRepository productAssignmentRepository;
+    private final OrgProductSubscriptionRepository orgSubscriptionRepository;
+    private final VehicleProductAssignmentRepository vehicleAssignmentRepository;
 
     @Override
     public void run(String... args) throws Exception {
-        // Clear existing data for fresh run
-        organizationRepository.deleteAll();
-        vehicleRepository.deleteAll();
+        // Cleanup
+        vehicleAssignmentRepository.deleteAll();
+        orgSubscriptionRepository.deleteAll();
         productDefinitionRepository.deleteAll();
-        productAssignmentRepository.deleteAll();
+        vehicleRepository.deleteAll();
+        organizationRepository.deleteAll();
 
         // Create Organizations
         Organization org1 = new Organization();
@@ -70,6 +70,46 @@ public class DataLoader implements CommandLineRunner {
 
         productDefinitionRepository.saveAll(List.of(p1, p2, p3));
 
+
+        // Create OrgProductSubscription (org acquires OnStar)
+        Instant now = Instant.now();
+        OrgProductSubscription orgSub = OrgProductSubscription.builder()
+                .id("sub001")
+                .organizationId("org001")
+                .productId("prod001")
+                .type(ProductType.RENEWABLE)
+                .subscribedOn(now)
+                .expiresOn(now.plusSeconds(365 * 86400L))
+                .status(ProductStatus.ACTIVE)
+                .build();
+        orgSubscriptionRepository.save(orgSub);
+
+        // Create VehicleProductAssignments
+        VehicleProductAssignment a1 = VehicleProductAssignment.builder()
+                .id("assign001")
+                .organizationId("org001")
+                .vehicleId("veh001")
+                .orgProductSubscriptionId("sub001")
+                .activatedOn(now)
+                .expiresOn(orgSub.getExpiresOn())
+                .status(ProductStatus.ACTIVE)
+                .build();
+
+        VehicleProductAssignment a2 = VehicleProductAssignment.builder()
+                .id("assign002")
+                .organizationId("org001")
+                .vehicleId("veh002")
+                .orgProductSubscriptionId("sub001")
+                .activatedOn(now)
+                .expiresOn(orgSub.getExpiresOn())
+                .status(ProductStatus.ACTIVE)
+                .build();
+
+        vehicleAssignmentRepository.saveAll(List.of(a1, a2));
+
+        System.out.println("✅ Sample SaaS-style data loaded successfully.");
+
+        /*
         // Create product assignments
         Instant now = Instant.now();
 
@@ -111,7 +151,7 @@ public class DataLoader implements CommandLineRunner {
                 .status(ProductStatus.ACTIVE)
                 .build();
 
-        productAssignmentRepository.saveAll(List.of(pa1, pa2, pa3));
+        productAssignmentRepository.saveAll(List.of(pa1, pa2, pa3)); */
 
         System.out.println("✅ Sample data loaded successfully.");
     }

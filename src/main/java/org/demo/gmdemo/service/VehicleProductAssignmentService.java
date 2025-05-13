@@ -1,0 +1,57 @@
+package org.demo.gmdemo.service;
+
+import lombok.RequiredArgsConstructor;
+import org.demo.gmdemo.dto.OrgProductSubscription;
+import org.demo.gmdemo.dto.ProductStatus;
+import org.demo.gmdemo.dto.Vehicle;
+import org.demo.gmdemo.dto.VehicleProductAssignment;
+import org.demo.gmdemo.repo.OrgProductSubscriptionRepository;
+import org.demo.gmdemo.repo.VehicleProductAssignmentRepository;
+import org.demo.gmdemo.repo.VehicleRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class VehicleProductAssignmentService {
+
+    private final VehicleProductAssignmentRepository vehicleAssignmentRepo;
+    private final OrgProductSubscriptionRepository orgSubscriptionRepo;
+    private final VehicleRepository vehicleRepository;
+
+    public VehicleProductAssignment assign(String orgId, String vehicleId, String orgSubId) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid vehicle"));
+
+        OrgProductSubscription subscription = orgSubscriptionRepo.findById(orgSubId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid org product subscription"));
+
+        if (!subscription.getOrganizationId().equals(orgId)) {
+            throw new IllegalStateException("Subscription does not belong to this org");
+        }
+
+        if (vehicleAssignmentRepo.existsByVehicleIdAndOrgProductSubscriptionIdAndStatus(vehicleId, orgSubId, ProductStatus.ACTIVE)) {
+            throw new IllegalStateException("Vehicle already has this product assigned");
+        }
+
+        Instant now = Instant.now();
+
+        VehicleProductAssignment assignment = VehicleProductAssignment.builder()
+                .organizationId(orgId)
+                .vehicleId(vehicleId)
+                .orgProductSubscriptionId(orgSubId)
+                .activatedOn(now)
+                .expiresOn(subscription.getExpiresOn())
+                .status(ProductStatus.ACTIVE)
+                .build();
+
+        return vehicleAssignmentRepo.save(assignment);
+    }
+
+    public List<VehicleProductAssignment> getActiveSubscriptions(String vehicleId) {
+        return vehicleAssignmentRepo.findByVehicleIdAndStatus(vehicleId, ProductStatus.ACTIVE);
+    }
+}
+

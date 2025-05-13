@@ -34,10 +34,29 @@ public class ProductAssignmentService {
             throw new IllegalArgumentException("Some vehicle IDs are invalid");
         }
 
+        // Get existing active assignments for this org + product
+        List<ProductAssignment> existingAssignments =
+                productAssignmentRepository.findByProductIdAndOrganizationIdAndStatus(
+                        productId, organizationId, ProductStatus.ACTIVE
+                );
+
+        Set<String> alreadyAssignedVehicleIds = existingAssignments.stream()
+                .map(ProductAssignment::getVehicleId)
+                .collect(Collectors.toSet());
+
+        // Filter out vehicles that already have active subscriptions
+        List<String> newVehicleIds = vehicleIds.stream()
+                .filter(id -> !alreadyAssignedVehicleIds.contains(id))
+                .toList();
+
+        if (newVehicleIds.isEmpty()) {
+            throw new IllegalStateException("All vehicles already have active assignments for this product.");
+        }
+
         Instant now = Instant.now();
         int termDays = Optional.ofNullable(product.getTermInDays()).orElse(365);
 
-        List<ProductAssignment> assignments = vehicleIds.stream()
+        List<ProductAssignment> newAssignments = newVehicleIds.stream()
                 .map(vehicleId -> ProductAssignment.builder()
                         .productId(productId)
                         .organizationId(organizationId)
@@ -48,8 +67,9 @@ public class ProductAssignmentService {
                         .build())
                 .toList();
 
-        return productAssignmentRepository.saveAll(assignments);
+        return productAssignmentRepository.saveAll(newAssignments);
     }
+
 
 
     public ProductAssignment renewSubscription(String assignmentId) {
