@@ -2,6 +2,7 @@ package org.demo.gmdemo.service;
 
 import lombok.RequiredArgsConstructor;
 import org.demo.gmdemo.dto.*;
+import org.demo.gmdemo.model.SubscriptionPurchaseRequest;
 import org.demo.gmdemo.repo.OrgProductSubscriptionRepository;
 import org.demo.gmdemo.repo.ProductDefinitionRepository;
 import org.demo.gmdemo.repo.VehicleProductAssignmentRepository;
@@ -9,7 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +78,86 @@ public class OrgProductSubscriptionService {
                     return new OrgProductSummaryDTO(productId, productName, count);
                 })
                 .collect(Collectors.toList());
+    }
+
+
+    public OrgProductSubscription initiateSubscriptionPurchase(SubscriptionPurchaseRequest request) {
+        ProductDefinition product = productRepo.findById(request.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid product ID"));
+
+        OrgProductSubscription subscription = OrgProductSubscription.builder()
+                .organizationId(request.getOrganizationId())
+                .productId(request.getProductId())
+                .type(product.getType())
+                .subscribedOn(Instant.now())
+                .status(ProductStatus.PENDING) // status until purchase confirmed
+                .build();
+
+        OrgProductSubscription saved = repo.save(subscription);
+
+        // Call external purchase service (REST or event queue)
+        initiatePurchaseExternally(saved, request.getCallbackUrl());
+
+        return saved;
+    }
+
+
+    public void activateSubscription(String subscriptionId) {
+        OrgProductSubscription sub = repo.findById(subscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid subscription ID"));
+
+        if (sub.getStatus() != ProductStatus.PENDING) {
+            throw new IllegalStateException("Only pending subscriptions can be activated");
+        }
+
+        Instant now = Instant.now();
+        Instant expiry = (sub.getType() == ProductType.ONE_TIME) ? null :
+                now.plusSeconds(Optional.of(365).get() * 86400L); // default term
+
+        sub.setStatus(ProductStatus.ACTIVE);
+        sub.setSubscribedOn(now);
+        sub.setExpiresOn(expiry);
+
+        repo.save(sub);
+    }
+
+    public void cancelSubscription(String subscriptionId) {
+        OrgProductSubscription sub = repo.findById(subscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid subscription ID"));
+
+        sub.setStatus(ProductStatus.CANCELLED);
+        repo.save(sub);
+    }
+
+
+    private void initiatePurchaseExternally(OrgProductSubscription sub, String callbackUrl) {
+        System.out.println("🛒 [PurchaseService Sim] Starting purchase process for subscription: " + sub.getId());
+
+        // 1. Simulate processing delay (e.g., 1–3 seconds)
+        int delayMillis = ThreadLocalRandom.current().nextInt(1000, 3000);
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException ignored) {}
+
+        // 2. Simulate purchase result randomly
+        boolean success = ThreadLocalRandom.current().nextBoolean(); // 50% chance success
+
+        // 3. Prepare payload
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("subscriptionId", sub.getId());
+        payload.put("success", success);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+        try {
+            ResponseEntity<String> response = new RestTemplate().postForEntity(callbackUrl, request, String.class);
+            System.out.printf("✅ Callback sent to %s | Success=%s | Status=%s%n",
+                    callbackUrl, success, response.getStatusCode());
+        } catch (Exception ex) {
+            System.err.printf("❌ Failed to send callback to %s: %s%n", callbackUrl, ex.getMessage());
+        }
     }
 
 

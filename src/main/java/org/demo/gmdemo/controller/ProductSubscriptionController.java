@@ -6,13 +6,16 @@ import org.demo.gmdemo.dto.OrgProductSummaryDTO;
 import org.demo.gmdemo.dto.ProductStatus;
 import org.demo.gmdemo.dto.VehicleProductAssignment;
 import org.demo.gmdemo.model.OrgProductSubscriptionRequest;
+import org.demo.gmdemo.model.SubscriptionPurchaseRequest;
 import org.demo.gmdemo.model.VehicleProductAssignmentRequest;
 import org.demo.gmdemo.service.OrgProductSubscriptionService;
+import org.demo.gmdemo.service.ProductAssignmentService;
 import org.demo.gmdemo.service.VehicleProductAssignmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/subscriptions")
@@ -47,6 +50,30 @@ public class ProductSubscriptionController {
         return ResponseEntity.ok(
                 orgService.getProductUsageSummary(orgId, subscriptionStatus, assignmentStatuses)
         );
+    }
+
+
+    @PostMapping("/org/purchase")
+    public ResponseEntity<OrgProductSubscription> initiateProductPurchase(
+            @RequestBody SubscriptionPurchaseRequest request
+    ) {
+        OrgProductSubscription subscription = orgService.initiateSubscriptionPurchase(request);
+        return ResponseEntity.ok(subscription);
+    }
+
+
+    @PostMapping("/callback")
+    public ResponseEntity<String> confirmPurchasePost(@RequestBody Map<String, Object> payload) {
+        String subscriptionId = (String) payload.get("subscriptionId");
+        boolean success = Boolean.TRUE.equals(payload.get("success"));
+
+        if (success) {
+            orgService.activateSubscription(subscriptionId);
+            return ResponseEntity.ok("Activated");
+        } else {
+            orgService.cancelSubscription(subscriptionId);
+            return ResponseEntity.ok("Cancelled");
+        }
     }
 
 

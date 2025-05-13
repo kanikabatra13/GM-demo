@@ -22,16 +22,12 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-
     // Spring Boot MongoDB
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 
-    // Flapdoodle Embedded MongoDB for tests
-    testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.6.1'
 
     // Spring Boot Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
 
         compileOnly 'org.projectlombok:lombok:1.18.30'
         annotationProcessor 'org.projectlombok:lombok:1.18.30'
@@ -39,6 +35,10 @@ dependencies {
         testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'com.jayway.jsonpath:json-path:2.7.0'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
 
 
 }

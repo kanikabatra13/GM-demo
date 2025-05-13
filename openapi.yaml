@@ -1,0 +1,211 @@
+openapi: 3.0.1
+info:
+  title: GM Digital Product Subscription API
+  version: 1.0.0
+  description: API for managing product subscriptions and vehicle assignments in a SaaS-style platform.
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /subscriptions/org/purchase:
+    post:
+      summary: Initiate product subscription purchase for an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPurchaseRequest'
+      responses:
+        '200':
+          description: Subscription created in PENDING state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgProductSubscription'
+
+  /subscriptions/callback:
+    post:
+      summary: Handle purchase result callback from external payment system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseCallbackRequest'
+      responses:
+        '200':
+          description: Subscription activated or cancelled
+
+  /subscriptions/vehicle:
+    post:
+      summary: Assign a product subscription to a vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleProductAssignmentRequest'
+      responses:
+        '200':
+          description: Vehicle assignment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleProductAssignment'
+
+  /subscriptions/vehicle/{vehicleId}:
+    get:
+      summary: Get active subscriptions for a vehicle
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of active vehicle assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VehicleProductAssignment'
+
+  /subscriptions/organization/summary:
+    get:
+      summary: Get product subscription summary for an organization
+      parameters:
+        - name: orgId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: subscriptionStatus
+          in: query
+          schema:
+            $ref: '#/components/schemas/ProductStatus'
+        - name: assignmentStatuses
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProductStatus'
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Summary of subscriptions by product
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgProductSummaryDTO'
+
+  /subscriptions/org/renew:
+    post:
+      summary: Renew an organization's subscription manually
+      parameters:
+        - name: subscriptionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription renewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgProductSubscription'
+
+components:
+  schemas:
+    SubscriptionPurchaseRequest:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        productId:
+          type: string
+        callbackUrl:
+          type: string
+
+    PurchaseCallbackRequest:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        success:
+          type: boolean
+
+    VehicleProductAssignmentRequest:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        vehicleId:
+          type: string
+        orgProductSubscriptionId:
+          type: string
+
+    OrgProductSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        productId:
+          type: string
+        type:
+          $ref: '#/components/schemas/ProductType'
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+        subscribedOn:
+          type: string
+          format: date-time
+        expiresOn:
+          type: string
+          format: date-time
+
+    VehicleProductAssignment:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        vehicleId:
+          type: string
+        orgProductSubscriptionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+        activatedOn:
+          type: string
+          format: date-time
+        expiresOn:
+          type: string
+          format: date-time
+
+    OrgProductSummaryDTO:
+      type: object
+      properties:
+        productId:
+          type: string
+        productName:
+          type: string
+        vehicleCount:
+          type: integer
+
+    ProductStatus:
+      type: string
+      enum: [PENDING, ACTIVE, CANCELLED, EXPIRED]
+
+    ProductType:
+      type: string
+      enum: [ONE_TIME, TERMED, RENEWABLE]

@@ -9,4 +9,7 @@ import java.util.List;
 public interface VehicleProductAssignmentRepository extends MongoRepository<VehicleProductAssignment, String> {
     List<VehicleProductAssignment> findByVehicleIdAndStatus(String vehicleId, ProductStatus status);
     boolean existsByVehicleIdAndOrgProductSubscriptionIdAndStatus(String vehicleId, String orgSubId, ProductStatus status);
+
+    List<VehicleProductAssignment> findByOrgProductSubscriptionIdAndStatus(String subId, ProductStatus status);
+
 }
